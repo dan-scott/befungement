@@ -1,5 +1,5 @@
-const WIDTH = 80;
-const HEIGHT = 25;
+export const WIDTH = 80;
+export const HEIGHT = 25;
 
 const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 directions.right = directions[0];
@@ -75,6 +75,7 @@ export function build(code = '') {
 
   const props = {
     program: () => program.map(row => row.join('')).join('\n'),
+    board: () => program,
     pos: () => [x, y],
     stack: () => stack.slice(),
   };
