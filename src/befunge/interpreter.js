@@ -33,7 +33,11 @@ export function build(code = '') {
 
   let dir = directions.right;
 
+  let stringMode = false;
+
   let stack = [];
+
+  let output = '';
 
   function tick() {
     ingest();
@@ -43,27 +47,22 @@ export function build(code = '') {
   function ingest() {
     const operator = program[y][x];
 
-    if (ingestOperations[operator]) {
+    if (operator === '$') {
+      stack.pop();
+      return;
+    }
+
+    if (operator === '"') {
+      stringMode = !stringMode;
+      return;
+    }
+
+    if (!stringMode && ingestOperations[operator]) {
       ingestOperations[operator]();
     } else {
-      stack.push(parseInt(operator));
+      stack.push(stringMode ? operator : parseInt(operator));
     }
   }
-
-  let ingestOperations = {
-    ' ': () => {},
-    '@': () => (ended = true),
-    '+': buildPerformOp((a, b) => b + a),
-    '-': buildPerformOp((a, b) => b - a),
-    '*': buildPerformOp((a, b) => b * a),
-    '/': buildPerformOp(divide),
-    '!': () => stack.push(stack.pop() === 0 ? 1 : 0),
-    '`': buildPerformOp((a, b) => (a < b ? 1 : 0)),
-    '>': () => (dir = directions.right),
-    v: () => (dir = directions.down),
-    '<': () => (dir = directions.left),
-    '^': () => (dir = directions.up),
-  };
 
   function advance() {
     if (ended) {
@@ -81,10 +80,89 @@ export function build(code = '') {
     };
   }
 
-  function divide(a, b) {
+  const add = buildPerformOp((a, b) => b + a);
+
+  const subtract = buildPerformOp((a, b) => b - a);
+
+  const multiply = buildPerformOp((a, b) => b * a);
+
+  const divide = buildPerformOp((a, b) => {
     const result = b / a;
     return result > 0 ? Math.floor(result) : Math.ceil(result);
-  }
+  });
+
+  const not = () => stack.push(stack.pop() === 0 ? 1 : 0);
+
+  const compare = buildPerformOp((a, b) => (a < b ? 1 : 0));
+
+  const duplicate = () => {
+    const top = stack.pop();
+    stack.push(top, top);
+  };
+
+  const swap = () => {
+    const a = stack.pop();
+    const b = stack.pop();
+    stack.push(a, b);
+  };
+
+  const outputInt = () => {
+    output += `${stack.pop()}`;
+  };
+
+  const outputChar = () => {
+    output += String.fromCharCode(stack.pop());
+  };
+
+  const get = () => {
+    const y = stack.pop();
+    const x = stack.pop();
+    stack.push(parseInt(program[y][x]));
+  };
+
+  const put = () => {
+    const y = stack.pop();
+    const x = stack.pop();
+    const val = stack.pop();
+    program[y][x] = val;
+  };
+
+  const randomDirection = () => {
+    dir = directions[Math.round(Math.random() * 3)];
+  };
+
+  const horizIf = () => {
+    dir = stack.pop() === 0 ? directions.right : directions.left;
+  };
+
+  const vertIf = () => {
+    dir = stack.pop() === 0 ? directions.down : directions.up;
+  };
+
+  let ingestOperations = {
+    ' ': () => {},
+    '@': () => (ended = true),
+    '+': add,
+    '-': subtract,
+    '*': multiply,
+    '/': divide,
+    '!': not,
+    '`': compare,
+    ':': duplicate,
+    '\\': swap,
+    '.': outputInt,
+    ',': outputChar,
+    '>': () => (dir = directions.right),
+    v: () => (dir = directions.down),
+    '<': () => (dir = directions.left),
+    '^': () => (dir = directions.up),
+    '#': () => advance(),
+    '?': randomDirection,
+    _: horizIf,
+    '|': vertIf,
+    g: get,
+    p: put,
+  };
 
   let instance = {
     tick,
@@ -96,6 +174,7 @@ export function build(code = '') {
     pos: () => [x, y],
     stack: () => stack.slice(),
     ended: () => ended,
+    output: () => output,
   };
 
   Object.entries(props).forEach(([key, get]) => Object.defineProperty(instance, key, { configurable: false, get }));

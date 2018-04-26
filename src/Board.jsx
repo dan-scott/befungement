@@ -2,7 +2,7 @@ import React from 'react';
 import { HEIGHT, WIDTH, build } from './befunge/interpreter';
 import classnames from 'classnames';
 
-const program = `>   v\n\n\n^   <`;
+const program = 'v>>>>>v\n 12345\n ^?^\n> ? ?^\n v?v\n 6789\n >>>> v\n^    .<';
 
 export class Board extends React.Component {
   constructor() {
@@ -30,12 +30,15 @@ export class Board extends React.Component {
       active: this.interpreter.pos,
       board: this.interpreter.board,
       stack: this.interpreter.stack,
+      output: this.interpreter.output,
     }));
   }
 
   render() {
     const {
       board,
+      stack,
+      output,
       active: [activeCol, activeRow],
     } = this.state;
     return (
@@ -54,6 +57,8 @@ export class Board extends React.Component {
             ))}
           </div>
         ))}
+        <div>{stack.join(',')}</div>
+        <div>{output}</div>
       </div>
     );
   }
