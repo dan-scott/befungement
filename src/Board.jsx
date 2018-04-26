@@ -1,35 +1,60 @@
 import React from 'react';
-import styled from 'styled-components';
-import { Block } from './Block';
+import { HEIGHT, WIDTH, build } from './befunge/interpreter';
+import classnames from 'classnames';
 
-const WIDTH = 10;
-const HEIGHT = 10;
+const program = `>   v\n\n\n^   <`;
 
-const BoardContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: ${WIDTH * 1.1}em;
-  height: ${HEIGHT * 1.1}em;
-  align-items: center;
-  justify-content: center;
-`;
+export class Board extends React.Component {
+  constructor() {
+    super();
+    this.interpreter = build(program);
+    this.state = {
+      active: this.interpreter.pos,
+      board: this.interpreter.board,
+      stack: this.interpreter.stack,
+    };
+    this.tick = this.tick.bind(this);
+  }
 
-const RowContainer = styled.div`
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
+  componentDidMount() {
+    this.interval = setInterval(this.tick, 100);
+  }
 
-const rowIndexes = [...Array(HEIGHT).keys()];
-const colIndexes = [...Array(WIDTH).keys()];
+  componentWillUnmount() {
+    clearInterval(this.interval);
+  }
 
-export const Board = () => (
-  <BoardContainer>
-    {rowIndexes.map(row => (
-      <RowContainer key={row}>
-        {colIndexes.map(col => <Block key={`${col}-${row}`} row={row} col={col} />)}
-      </RowContainer>
-    ))}
-  </BoardContainer>
-);
+  tick() {
+    this.interpreter.tick();
+    this.setState(() => ({
+      active: this.interpreter.pos,
+      board: this.interpreter.board,
+      stack: this.interpreter.stack,
+    }));
+  }
+
+  render() {
+    const {
+      board,
+      active: [activeCol, activeRow],
+    } = this.state;
+    return (
+      <div className="board">
+        {board.map((rowArr, row) => (
+          <div className="board__row" key={row}>
+            {rowArr.map((content, col) => (
+              <div
+                key={col}
+                className={classnames('board__block', {
+                  'board__block--active': row === activeRow && col === activeCol,
+                })}
+              >
+                {content}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+}

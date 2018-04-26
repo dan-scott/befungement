@@ -29,6 +29,8 @@ export function build(code = '') {
   let x = 0;
   let y = 0;
 
+  let ended = false;
+
   let dir = directions.right;
 
   let stack = [];
@@ -40,33 +42,48 @@ export function build(code = '') {
 
   function ingest() {
     const operator = program[y][x];
-    switch (operator) {
-      case ' ':
-        return;
 
-      case '>':
-        dir = directions.right;
-        break;
-
-      case 'v':
-        dir = directions.down;
-        break;
-
-      case '<':
-        dir = directions.left;
-        break;
-
-      case '^':
-        dir = directions.up;
-        break;
+    if (ingestOperations[operator]) {
+      ingestOperations[operator]();
+    } else {
+      stack.push(parseInt(operator));
     }
-
-    stack.push(parseInt(operator));
   }
 
+  let ingestOperations = {
+    ' ': () => {},
+    '@': () => (ended = true),
+    '+': buildPerformOp((a, b) => b + a),
+    '-': buildPerformOp((a, b) => b - a),
+    '*': buildPerformOp((a, b) => b * a),
+    '/': buildPerformOp(divide),
+    '!': () => stack.push(stack.pop() === 0 ? 1 : 0),
+    '`': buildPerformOp((a, b) => (a < b ? 1 : 0)),
+    '>': () => (dir = directions.right),
+    v: () => (dir = directions.down),
+    '<': () => (dir = directions.left),
+    '^': () => (dir = directions.up),
+  };
+
   function advance() {
+    if (ended) {
+      return;
+    }
     x = (x + dir[0] + WIDTH) % WIDTH;
     y = (y + dir[1] + HEIGHT) % HEIGHT;
+  }
+
+  function buildPerformOp(fn) {
+    return () => {
+      const a = stack.pop();
+      const b = stack.pop();
+      stack.push(fn(a, b));
+    };
+  }
+
+  function divide(a, b) {
+    const result = b / a;
+    return result > 0 ? Math.floor(result) : Math.ceil(result);
   }
 
   let instance = {
@@ -78,6 +95,7 @@ export function build(code = '') {
     board: () => program,
     pos: () => [x, y],
     stack: () => stack.slice(),
+    ended: () => ended,
   };
 
   Object.entries(props).forEach(([key, get]) => Object.defineProperty(instance, key, { configurable: false, get }));
